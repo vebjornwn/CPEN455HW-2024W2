@@ -1,6 +1,8 @@
 import torch.nn as nn
 from layers import *
+from dataset import my_bidict
 
+NUM_CLASSES = len(my_bidict)
 
 class PixelCNNLayer_up(nn.Module):
     def __init__(self, nr_resnet, nr_filters, resnet_nonlinearity):
@@ -145,6 +147,27 @@ class PixelCNN(nn.Module):
         return x_out
     
     
+class ConditionalPixelCNN(PixelCNN):
+    def __init__(self, nr_resnet=5, nr_filters=80, nr_logistic_mix=10,
+                 resnet_nonlinearity='concat_elu', input_channels=3, num_classes=4):
+        super().__init__(nr_resnet, nr_filters, nr_logistic_mix, resnet_nonlinearity, input_channels)
+        # Add class embedding
+        self.class_embedding = nn.Embedding(num_classes, nr_filters)
+        
+    def forward(self, x, class_labels=None, sample=False):
+        # Get the base PixelCNN output
+        x_out = super().forward(x, sample)
+        
+        if class_labels is not None:
+            # Get class embeddings
+            class_emb = self.class_embedding(class_labels)
+            # Reshape class embeddings to match spatial dimensions
+            class_emb = class_emb.view(-1, self.nr_filters, 1, 1)
+            # Add class conditioning to the output
+            x_out = x_out + class_emb
+            
+        return x_out
+
 class random_classifier(nn.Module):
     def __init__(self, NUM_CLASSES):
         super(random_classifier, self).__init__()

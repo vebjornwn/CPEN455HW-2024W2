@@ -68,7 +68,13 @@ if __name__ == '__main__':
 
     #TODO:Begin of your code
     #You should replace the random classifier with your trained model
-    model = random_classifier(NUM_CLASSES)
+    model = ConditionalPixelCNN(
+        nr_resnet=5,        # More residual blocks
+        nr_filters=160,     # More filters
+        nr_logistic_mix=10, # More mixture components
+        input_channels=3,
+        num_classes=NUM_CLASSES
+    )
     #End of your code
     
     model = model.to(device)
