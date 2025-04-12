@@ -98,6 +98,13 @@ class PixelCNN(nn.Module):
 
 
     def forward(self, x, sample=False):
+
+        ##Add class labels to the input
+        class_embedding = self.embedding(class_labels)
+        # Reshape embedding for broadcasting
+        class_embedding = class_embedding.view(batch_size, embedding_dim, 1, 1)
+        # Add to feature maps
+        x = x + class_embedding
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -124,6 +131,20 @@ class PixelCNN(nn.Module):
                 # downscale (only twice)
                 u_list  += [self.downsize_u_stream[i](u_list[-1])]
                 ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
+
+        ###    DOWN PASS    ###
+        u  = u_list.pop()
+        ul = ul_list.pop()
+
+        for i in range(3):
+            # resnet block
+            u, ul = self.down_layers[i](u, ul, u_list, ul_list)
+
+            # upscale (only twice)
+            if i != 2 :
+                u  = self.upsize_u_stream[i](u)
+                ul = self.upsize_ul_stream[i](ul)
+
 
         ###    DOWN PASS    ###
         u  = u_list.pop()

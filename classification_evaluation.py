@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     #TODO:Begin of your code
     #You should replace the random classifier with your trained model
-    model = ConditionalPixelCNN(
+    model = PixelCNN(
     nr_resnet=2,
     nr_filters=40,
     nr_logistic_mix=5,
