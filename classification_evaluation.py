@@ -22,13 +22,18 @@ NUM_CLASSES = len(my_bidict)
 
 #TODO: Begin of your code
 def get_label(model, model_input, device):
-    # Write your code here, replace the random classifier with your trained model
-    # and return the predicted label, which is a tensor of shape (batch_size,)
     model = model.to(device)
     model.eval()
     
     with torch.no_grad():
         outputs = model(model_input.to(device))  # forward pass
+        
+        # If outputs has spatial dimensions (e.g., shape (B, num_classes, H, W)),
+        # collapse them to get a (B, num_classes) tensor.
+        if outputs.dim() > 2:
+            outputs = torch.nn.functional.adaptive_avg_pool2d(outputs, (1, 1))
+            outputs = outputs.view(outputs.size(0), -1)
+            
         predicted_labels = torch.argmax(outputs, dim=1)  # (batch_size,)
     
     return predicted_labels
