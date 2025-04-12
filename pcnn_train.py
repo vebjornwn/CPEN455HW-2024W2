@@ -12,6 +12,8 @@ from tqdm import tqdm
 from pprint import pprint
 import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths
+from classification_evaluation import classifier
+from model import ConditionalPixelCNN
 
 
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
@@ -225,6 +227,17 @@ if __name__ == '__main__':
                       args = args,
                       epoch = epoch,
                       mode = 'val')
+        if (epoch + 1) % 2 == 0:
+            train_acc = classifier(model, train_loader, device)
+            val_acc = classifier(model, val_loader, device)
+            if args.en_wandb:
+                wandb.log({
+                    "epoch": epoch,
+                    "training_classification_accuracy": train_acc,
+                    "validation_classification_accuracy": val_acc
+                })
+            print(f"Epoch {epoch}: Train Classification Accuracy: {train_acc:.4f}, Validation Classification Accuracy: {val_acc:.4f}")
+
         
         if epoch % args.sampling_interval == 0:
             print('......sampling......')
