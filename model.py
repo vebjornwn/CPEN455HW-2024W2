@@ -96,6 +96,9 @@ class PixelCNN(nn.Module):
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
         self.init_padding = None
 
+    # Late Fusion addition: conditional embedding and fuse layer are added here
+        self.embedding = nn.Embedding(num_classes, embedding_dim)
+        self.fuse = nn.Conv2d(embedding_dim, num_mix * nr_logistic_mix, kernel_size=1)
 
     def forward(self, x, sample=False):
 
@@ -161,9 +164,11 @@ class PixelCNN(nn.Module):
 
         x_out = self.nin_out(F.elu(ul))
 
+        # Late Fusion: add the fusion condition to the output of the U-net
+        x_out = x_out + self.fuse(class_embedding)
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
-
         return x_out
+
     
     
 class random_classifier(nn.Module):
