@@ -98,19 +98,6 @@ class PixelCNN(nn.Module):
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
         self.init_padding = None
 
-<<<<<<< Updated upstream
-    # Late Fusion addition: conditional embedding and fuse layer are added here
-        self.embedding = nn.Embedding(num_classes, embedding_dim)
-        self.fuse = nn.Conv2d(embedding_dim, num_mix * nr_logistic_mix, kernel_size=1)
-
-    def forward(self, x, sample=False):
-
-        ##Add class labels to the input
-        class_embedding = self.embedding(class_labels)
-        # Reshape embedding for broadcasting
-        class_embedding = class_embedding.view(batch_size, embedding_dim, 1, 1)
-        # Add to feature maps
-=======
         self.embedding = nn.Embedding(len(my_bidict), self.embedding_dim)
         
 
@@ -119,7 +106,6 @@ class PixelCNN(nn.Module):
         class_embedding = self.embedding(labels)  # shape: (batch_size, nr_filters)
         class_embedding = class_embedding.view(x.size(0), self.nr_filters, 1, 1)
 
->>>>>>> Stashed changes
         x = x + class_embedding
         # similar as done in the tf repo :
         if self.init_padding is not sample:
