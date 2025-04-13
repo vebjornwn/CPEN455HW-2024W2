@@ -1,5 +1,6 @@
 import torch.nn as nn
 from layers import *
+from dataset import my_bidict
 
 
 class PixelCNNLayer_up(nn.Module):
@@ -64,6 +65,7 @@ class PixelCNN(nn.Module):
         self.nr_logistic_mix = nr_logistic_mix
         self.right_shift_pad = nn.ZeroPad2d((1, 0, 0, 0))
         self.down_shift_pad  = nn.ZeroPad2d((0, 0, 1, 0))
+        self.embedding_dim = nr_filters
 
         down_nr_resnet = [nr_resnet] + [nr_resnet + 1] * 2
         self.down_layers = nn.ModuleList([PixelCNNLayer_down(down_nr_resnet[i], nr_filters,
@@ -96,6 +98,7 @@ class PixelCNN(nn.Module):
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
         self.init_padding = None
 
+<<<<<<< Updated upstream
     # Late Fusion addition: conditional embedding and fuse layer are added here
         self.embedding = nn.Embedding(num_classes, embedding_dim)
         self.fuse = nn.Conv2d(embedding_dim, num_mix * nr_logistic_mix, kernel_size=1)
@@ -107,6 +110,16 @@ class PixelCNN(nn.Module):
         # Reshape embedding for broadcasting
         class_embedding = class_embedding.view(batch_size, embedding_dim, 1, 1)
         # Add to feature maps
+=======
+        self.embedding = nn.Embedding(len(my_bidict), self.embedding_dim)
+        
+
+    def forward(self, x, labels, sample=False):
+
+        class_embedding = self.embedding(labels)  # shape: (batch_size, nr_filters)
+        class_embedding = class_embedding.view(x.size(0), self.nr_filters, 1, 1)
+
+>>>>>>> Stashed changes
         x = x + class_embedding
         # similar as done in the tf repo :
         if self.init_padding is not sample:
