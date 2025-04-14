@@ -132,14 +132,7 @@ class gated_resnet(nn.Module):
     def forward(self, og_x, a=None):
         x = self.conv_input(self.nonlinearity(og_x))
         if a is not None :
-
-            a_nl = self.nonlinearity(a)
-            # Check if spatial dims match (H and W)
-            if a_nl.shape[-2:] != x.shape[-2:]:
-                # Resize a_nl to match x's spatial dimensions
-                a_nl = F.interpolate(a_nl, size=x.shape[-2:], mode='nearest')
-            # Apply nin_skip and add to x
-            x += self.nin_skip(a_nl)
+            x += self.nin_skip(self.nonlinearity(a))
         x = self.nonlinearity(x)
         x = self.dropout(x)
         x = self.conv_out(x)
