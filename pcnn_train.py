@@ -28,7 +28,10 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     for batch_idx, item in enumerate(tqdm(data_loader)):
         model_input, labels = item
         model_input = model_input.to(device)
-        model_output = model(model_input, labels)
+        if mode == 'test':
+            model_output = model(model_input)
+        else:
+            model_output = model(model_input, labels)
         loss = loss_op(model_input, model_output)
         loss_tracker.update(loss.item()/deno)
         if mode == 'training':
@@ -161,12 +164,12 @@ if __name__ == '__main__':
                                                    batch_size=args.batch_size, 
                                                    shuffle=True, 
                                                    **kwargs)
-        # test_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-        #                                                           mode = 'test', 
-        #                                                           transform=ds_transforms), 
-        #                                            batch_size=args.batch_size, 
-        #                                            shuffle=True, 
-        #                                            **kwargs)
+        test_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
+                                                                  mode = 'test', 
+                                                                  transform=ds_transforms), 
+                                                   batch_size=args.batch_size, 
+                                                   shuffle=True, 
+                                                   **kwargs)
         val_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
                                                                   mode = 'validation', 
                                                                   transform=ds_transforms), 
@@ -205,14 +208,14 @@ if __name__ == '__main__':
         
         # decrease learning rate
         scheduler.step()
-        # train_or_test(model = model,
-        #               data_loader = test_loader,
-        #               optimizer = optimizer,
-        #               loss_op = loss_op,
-        #               device = device,
-        #               args = args,
-        #               epoch = epoch,
-        #               mode = 'test')
+        train_or_test(model = model,
+                      data_loader = test_loader,
+                      optimizer = optimizer,
+                      loss_op = loss_op,
+                      device = device,
+                      args = args,
+                      epoch = epoch,
+                      mode = 'test')
         
         train_or_test(model = model,
                       data_loader = val_loader,
@@ -234,27 +237,48 @@ if __name__ == '__main__':
             print(f"Epoch {epoch}: Train Classification Accuracy: {train_acc:.4f}, Validation Classification Accuracy: {val_acc:.4f}")
 
         
-        if epoch % args.sampling_interval == 0:
-            print('......sampling......')
-            sample_t = sample(model, args.sample_batch_size, args.obs, sample_op)
-            sample_t = rescaling_inv(sample_t)
-            save_images(sample_t, args.sample_dir)
-            sample_result = wandb.Image(sample_t, caption="epoch {}".format(epoch))
-            
-            gen_data_dir = args.sample_dir
-            ref_data_dir = args.data_dir +'/test'
-            paths = [gen_data_dir, ref_data_dir]
-            try:
-                fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
-                print("Dimension {:d} works! fid score: {}".format(192, fid_score))
-            except:
-                print("Dimension {:d} fails!".format(192))
-                
-            if args.en_wandb:
-                wandb.log({"samples": sample_result,
-                            "FID": fid_score})
+if epoch % args.sampling_interval == 0:
+    print('......sampling......')
+    print('......sampling......')
+    print('......sampling......')
+    # Dictionary to store images for logging to wandb
+    wandb_images = {}
+
+    # Iterate through each label in my_bidict
+    for label in my_bidict:
+        print(f"Label: {label}")
+        # Generate images for this label
+        sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, label)
+        sample_t = rescaling_inv(sample_t)
         
-        if (epoch + 1) % args.save_interval == 0: 
-            if not os.path.exists("models"):
-                os.makedirs("models")
-            torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
+        # Create a subdirectory for the current label (if it doesn't exist)
+        class_gen_dir = os.path.join(args.sample_dir, f"Class_{label}")
+        if not os.path.exists(class_gen_dir):
+            os.makedirs(class_gen_dir)
+        
+        # Save the images to the label-specific folder
+        save_images(sample_t, class_gen_dir, label=label)
+        
+        # Log each image in the batch individually to wandb for this label
+        wandb_images[f"Class{label}_samples"] = [
+            wandb.Image(img, caption=f"Label {label} at epoch {epoch}") for img in sample_t
+        ]
+    
+    # (Optional) Compute an overall FID using all generated images versus the reference images
+    gen_data_dir = args.sample_dir
+    ref_data_dir = os.path.join(args.data_dir, "test")
+    paths = [gen_data_dir, ref_data_dir]
+    try:
+        fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
+        print("Dimension {:d} works! fid score: {}".format(192, fid_score))
+    except Exception as e:
+        fid_score = None
+        print("Dimension {:d} fails!".format(192))
+    
+    # Log the images and overall FID score to Weights & Biases
+    if args.en_wandb:
+        log_dict = {}
+        log_dict.update(wandb_images)
+        if fid_score is not None:
+            log_dict["FID_overall"] = fid_score
+        wandb.log(log_dict)
