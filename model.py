@@ -115,7 +115,7 @@ class PixelCNN(nn.Module):
                 labels = labels.to(device=x.device, dtype=torch.long)
 
             mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
-            mid_class_embedding = mid_class_embedding.view(x.size, self.nr_filters, 1, 1)
+            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
    
             # early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
             # early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
