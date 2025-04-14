@@ -65,7 +65,6 @@ class PixelCNN(nn.Module):
         self.nr_logistic_mix = nr_logistic_mix
         self.right_shift_pad = nn.ZeroPad2d((1, 0, 0, 0))
         self.down_shift_pad  = nn.ZeroPad2d((0, 0, 1, 0))
-        self.embedding_dim = nr_filters
 
         down_nr_resnet = [nr_resnet] + [nr_resnet + 1] * 2
         self.down_layers = nn.ModuleList([PixelCNNLayer_down(down_nr_resnet[i], nr_filters,
@@ -98,7 +97,7 @@ class PixelCNN(nn.Module):
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
         self.init_padding = None
         self.early_embedding = nn.Embedding(len(my_bidict), self.input_channels)
-        self.mid_embedding = nn.Embedding(len(my_bidict), nr_filters)
+        self.mid_embedding = nn.Embedding(len(my_bidict), self.nr_filters)
 
 
         
@@ -150,13 +149,12 @@ class PixelCNN(nn.Module):
         # --- MIDDLE FUSION ---
         # One common way is to pop the last features from each stream and add the mid embedding:
 
+
         if labels is not None:
             mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
-            mid_class_embedding = mid_class_embedding.view(8, self.nr_filters, 1, 1)
-  
+            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
             u  = u_list.pop() + mid_class_embedding
             ul = ul_list.pop() + mid_class_embedding
-
 
         u  = u_list.pop()
         ul = ul_list.pop() 
