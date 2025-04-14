@@ -27,6 +27,7 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     
     for batch_idx, item in enumerate(tqdm(data_loader)):
         model_input, labels = item
+        print(labels)
         model_input = model_input.to(device)
         if mode == 'test':
             model_output = model(model_input)
