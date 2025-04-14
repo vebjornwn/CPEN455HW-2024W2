@@ -114,8 +114,7 @@ class PixelCNN(nn.Module):
             else:
                 labels = labels.to(device=x.device, dtype=torch.long)
 
-            mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
-            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
+
    
             # early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
             # early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
@@ -133,10 +132,16 @@ class PixelCNN(nn.Module):
             padding = padding.cuda() if x.is_cuda else padding
             x = torch.cat((x, padding), 1)
 
+       
         ###      UP PASS    ###
         x = x if sample else torch.cat((x, self.init_padding), 1)
         u_list  = [self.u_init(x)]
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
+
+        if labels is not None:
+            mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
+            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
+        ###      UP PASS    ###
         for i in range(3):
             # resnet block
             u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1])
