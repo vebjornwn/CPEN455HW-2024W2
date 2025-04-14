@@ -182,7 +182,8 @@ def sample(model, sample_batch_size, obs, sample_op, label):
         for i in range(obs[1]):
             for j in range(obs[2]):
                 data_v = data
-                out   = model(data_v, sample=True, labels=label)
+                labels = [label] * data.shape[0]
+                out   = model(data_v, sample=True, labels=labels)
                 out_sample = sample_op(out)
                 data[:, :, i, j] = out_sample.data[:, :, i, j]
     return data
