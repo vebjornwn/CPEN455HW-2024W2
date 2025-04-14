@@ -152,7 +152,7 @@ class PixelCNN(nn.Module):
 
         if labels is not None:
             mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
-            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
+            mid_class_embedding = mid_class_embedding.view(len(u_list), self.nr_filters, 1, 1)
             u  = u_list.pop() + mid_class_embedding
             ul = ul_list.pop() + mid_class_embedding
 
