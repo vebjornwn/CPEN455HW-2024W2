@@ -123,7 +123,7 @@ class gated_resnet(nn.Module):
         self.conv_input = conv_op(2 * num_filters, num_filters) # cuz of concat elu
 
         if skip_connection != 0 :
-            self.nin_skip = nin(2 * skip_connection * num_filters, num_filters)
+            self.nin_skip = nin(skip_connection * num_filters, num_filters)
 
         self.dropout = nn.Dropout2d(0.5)
         self.conv_out = conv_op(2 * num_filters, 2 * num_filters)
@@ -139,7 +139,7 @@ class gated_resnet(nn.Module):
                 # Resize a_nl to match x's spatial dimensions
                 a_nl = F.interpolate(a_nl, size=x.shape[-2:], mode='nearest')
             # Apply nin_skip and add to x
-            x += self.nin_skip(self.nonlinearity(a_nl))
+            x += self.nin_skip(a_nl)
         x = self.nonlinearity(x)
         x = self.dropout(x)
         x = self.conv_out(x)
