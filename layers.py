@@ -132,6 +132,8 @@ class gated_resnet(nn.Module):
     def forward(self, og_x, a=None):
         x = self.conv_input(self.nonlinearity(og_x))
         if a is not None :
+            if a.shape[-2:] != x.shape[-2:]:
+                a = F.interpolate(a, size=x.shape[-2:], mode='nearest')
             x += self.nin_skip(self.nonlinearity(a))
         x = self.nonlinearity(x)
         x = self.dropout(x)
