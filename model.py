@@ -108,13 +108,14 @@ class PixelCNN(nn.Module):
 
         if labels is not None: 
             labels = [my_bidict[label] for label in labels]
-
+            print(labels)
             # Ensure labels are converted to a PyTorch tensor on the same device as x
             if not isinstance(labels, torch.Tensor):
                 labels = torch.tensor(labels, dtype=torch.long, device=x.device)
             else:
                 labels = labels.to(device=x.device, dtype=torch.long)
-   
+    
+            print(labels)
             early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
             early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
 
