@@ -113,6 +113,9 @@ class PixelCNN(nn.Module):
                 labels = torch.tensor(labels, dtype=torch.long, device=x.device)
             else:
                 labels = labels.to(device=x.device, dtype=torch.long)
+
+            mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
+            mid_class_embedding = mid_class_embedding.view(x.size, self.nr_filters, 1, 1)
    
             # early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
             # early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
@@ -137,24 +140,26 @@ class PixelCNN(nn.Module):
         for i in range(3):
             # resnet block
             u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1])
-            u_list  += u_out
-            ul_list += ul_out
+
+            if labels is not None:
+                spatial_size = u_out[0].shape[-2:]  # assumes all outputs share the same H, W
+                mid_expanded = F.interpolate(mid_class_embedding, size=spatial_size, mode='nearest')
+                u_out = [u + mid_expanded for u in u_out]
+                ul_out = [ul + mid_expanded for ul in ul_out]
+            else:    
+                u_list  += u_out
+                ul_list += ul_out
 
             if i != 2:
                 # downscale (only twice)
                 u_list  += [self.downsize_u_stream[i](u_list[-1])]
                 ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
+        
 
         ###    DOWN PASS    ###
         # --- MIDDLE FUSION ---
         # One common way is to pop the last features from each stream and add the mid embedding:
 
-
-        if labels is not None:
-            mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
-            mid_class_embedding = mid_class_embedding.view(len(u_list), self.nr_filters, 1, 1)
-            u  = u_list.pop() + mid_class_embedding
-            ul = ul_list.pop() + mid_class_embedding
 
         u  = u_list.pop()
         ul = ul_list.pop() 
