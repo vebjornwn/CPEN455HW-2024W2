@@ -115,10 +115,10 @@ class PixelCNN(nn.Module):
             else:
                 labels = labels.to(device=x.device, dtype=torch.long)
    
-            # early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
-            # early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
+            early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
+            early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
 
-            # x = x + early_class_embedding
+            x = x + early_class_embedding
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -150,12 +150,12 @@ class PixelCNN(nn.Module):
         # --- MIDDLE FUSION ---
         # One common way is to pop the last features from each stream and add the mid embedding:
 
-        if labels is not None:
-            mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
-            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
+        # if labels is not None:
+        #     mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
+        #     mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
   
-            u  = u_list.pop() + mid_class_embedding
-            ul = ul_list.pop() + mid_class_embedding
+        #     u  = u_list.pop() + mid_class_embedding
+        #     ul = ul_list.pop() + mid_class_embedding
 
         u  = u_list.pop()
         ul = ul_list.pop() 
