@@ -26,7 +26,7 @@ def my_sample(model, gen_data_dir, sample_batch_size = 25, obs = (3,32,32), samp
     for label in my_bidict:
         print(f"Label: {label}")
         #generate images for each label, each label has 25 images
-        sample_t = sample(model, sample_batch_size, obs, sample_op)
+        sample_t = sample(model, sample_batch_size, obs, sample_op, label)
         sample_t = rescaling_inv(sample_t)
         save_images(sample_t, os.path.join(gen_data_dir), label=label)
     pass

@@ -97,16 +97,28 @@ class PixelCNN(nn.Module):
         num_mix = 3 if self.input_channels == 1 else 10
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
         self.init_padding = None
+        self.early_embedding = nn.Embedding(len(my_bidict), self.input_channels)
+        self.mid_embedding = nn.Embedding(len(my_bidict), nr_filters)
 
-        self.embedding = nn.Embedding(len(my_bidict), self.embedding_dim)
+
         
 
-    def forward(self, x, labels, sample=False):
+    def forward(self, x, labels = None, sample=False):
 
-        class_embedding = self.embedding(labels)  # shape: (batch_size, nr_filters)
-        class_embedding = class_embedding.view(x.size(0), self.nr_filters, 1, 1)
 
-        x = x + class_embedding
+        if labels is not None: 
+            labels = [my_bidict[label] for label in labels]
+
+            # # Ensure labels are converted to a PyTorch tensor on the same device as x
+            # if not isinstance(labels, torch.Tensor):
+            #     labels = torch.tensor(labels, dtype=torch.long, device=x.device)
+            # else:
+            #     labels = labels.to(device=x.device, dtype=torch.long)
+   
+            # early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
+            # early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
+
+            # x = x + early_class_embedding
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -135,22 +147,19 @@ class PixelCNN(nn.Module):
                 ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
 
         ###    DOWN PASS    ###
+        # --- MIDDLE FUSION ---
+        # One common way is to pop the last features from each stream and add the mid embedding:
+
+        if labels is not None:
+            mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
+            mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
+  
+            u  = u_list.pop() + mid_class_embedding
+            ul = ul_list.pop() + mid_class_embedding
+
         u  = u_list.pop()
-        ul = ul_list.pop()
+        ul = ul_list.pop() 
 
-        for i in range(3):
-            # resnet block
-            u, ul = self.down_layers[i](u, ul, u_list, ul_list)
-
-            # upscale (only twice)
-            if i != 2 :
-                u  = self.upsize_u_stream[i](u)
-                ul = self.upsize_ul_stream[i](ul)
-
-
-        ###    DOWN PASS    ###
-        u  = u_list.pop()
-        ul = ul_list.pop()
 
         for i in range(3):
             # resnet block
@@ -164,7 +173,7 @@ class PixelCNN(nn.Module):
         x_out = self.nin_out(F.elu(ul))
 
         # Late Fusion: add the fusion condition to the output of the U-net
-        x_out = x_out + self.fuse(class_embedding)
+        # x_out = x_out + class_embedding
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
         return x_out
 

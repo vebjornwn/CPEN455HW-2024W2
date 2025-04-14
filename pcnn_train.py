@@ -13,7 +13,7 @@ from pprint import pprint
 import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths  
 from classification_evaluation import classifier
-from model import ConditionalPixelCNN
+
 
 
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     #Reminder: if you have patience to read code line by line, you should notice this comment. here is the reason why we set num_workers to 0:
     #In order to avoid pickling errors with the dataset on different machines, we set num_workers to 0.
     #If you are using ubuntu/linux/colab, and find that loading data is too slow, you can set num_workers to 1 or even bigger.
-    kwargs = {'num_workers':4, 'pin_memory':True, 'drop_last':True}
+    kwargs = {'num_workers':2, 'pin_memory':True, 'drop_last':True}
 
     # set data
     if "mnist" in args.dataset:
@@ -161,12 +161,12 @@ if __name__ == '__main__':
                                                    batch_size=args.batch_size, 
                                                    shuffle=True, 
                                                    **kwargs)
-        test_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-                                                                  mode = 'test', 
-                                                                  transform=ds_transforms), 
-                                                   batch_size=args.batch_size, 
-                                                   shuffle=True, 
-                                                   **kwargs)
+        # test_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
+        #                                                           mode = 'test', 
+        #                                                           transform=ds_transforms), 
+        #                                            batch_size=args.batch_size, 
+        #                                            shuffle=True, 
+        #                                            **kwargs)
         val_loader  = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
                                                                   mode = 'validation', 
                                                                   transform=ds_transforms), 
@@ -205,14 +205,14 @@ if __name__ == '__main__':
         
         # decrease learning rate
         scheduler.step()
-        train_or_test(model = model,
-                      data_loader = test_loader,
-                      optimizer = optimizer,
-                      loss_op = loss_op,
-                      device = device,
-                      args = args,
-                      epoch = epoch,
-                      mode = 'test')
+        # train_or_test(model = model,
+        #               data_loader = test_loader,
+        #               optimizer = optimizer,
+        #               loss_op = loss_op,
+        #               device = device,
+        #               args = args,
+        #               epoch = epoch,
+        #               mode = 'test')
         
         train_or_test(model = model,
                       data_loader = val_loader,
