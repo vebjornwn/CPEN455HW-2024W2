@@ -116,12 +116,8 @@ class PixelCNN(nn.Module):
             early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
             early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
 
-            print("Here is early_class_embedding")
-            print(early_class_embedding.size(0), early_class_embedding.size(1), early_class_embedding.size(2), early_class_embedding.size(3))
-
             x = x + early_class_embedding
-        print("Here is x")
-        print(x.size(0), x.size(1), x.size(2), x.size(3))
+
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -156,19 +152,12 @@ class PixelCNN(nn.Module):
         if labels is not None:
             mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
             mid_class_embedding = mid_class_embedding.view(x.size(0), self.nr_filters, 1, 1)
-
-            print("Here is mid_class_embedding")
-            print(mid_class_embedding.size(0), mid_class_embedding.size(1), mid_class_embedding.size(2), mid_class_embedding.size(3))
   
             u  = u_list.pop() + mid_class_embedding
             ul = ul_list.pop() + mid_class_embedding
-        # print("Here is u_list")
-        # print(u_list.size(0), u_list.size(1), u_list.size(2), u_list.size(3))
         else:
             u  = u_list.pop()
             ul = ul_list.pop() 
-        print("Here is ul_list popped")
-        print(ul.size(0), ul.size(1), ul.size(2), ul.size(3))
 
 
         for i in range(3):
