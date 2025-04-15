@@ -22,16 +22,17 @@ NUM_CLASSES = len(my_bidict)
 
 #TODO: Begin of your code
 def get_label(model, model_input, device):
-
     model.eval()
     log_likelihoods = []
     
+    # Ensure image has a batch dimension.
     if model_input.dim() == 3:
         image = model_input.unsqueeze(0)
-    
+    else:
+        image = model_input  # Make sure image is defined even if already batched.
+
     with torch.no_grad():
-        for label in my_bidict:
-           
+        for label in my_bidict.keys():
             label_index = my_bidict[label]
             label_tensor = torch.tensor([label_index] * image.size(0), device=device, dtype=torch.long)
             
@@ -42,12 +43,15 @@ def get_label(model, model_input, device):
             
             log_likelihoods.append(log_likelihood.item())
     
-    # Convert list to numpy array to easily compute argmax.
+    # Convert list to numpy array and select the class with the highest log-likelihood.
     log_likelihoods = np.array(log_likelihoods)
     best_index = np.argmax(log_likelihoods)
-    predicted_class = my_bidict[best_index]
+    
+    # Convert best_index to the corresponding class label.
+    predicted_class = list(my_bidict.keys())[best_index]
     
     return predicted_class
+
 # End of your code
 
 def classifier(model, data_loader, device):
