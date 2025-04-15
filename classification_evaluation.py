@@ -22,21 +22,32 @@ NUM_CLASSES = len(my_bidict)
 
 #TODO: Begin of your code
 def get_label(model, model_input, device):
-    model = model.to(device)
+
     model.eval()
+    log_likelihoods = []
+    
+    if model_input.dim() == 3:
+        image = model_input.unsqueeze(0)
     
     with torch.no_grad():
-        outputs = model(model_input.to(device))  # forward pass
-        
-        # If outputs has spatial dimensions (e.g., shape (B, num_classes, H, W)),
-        # collapse them to get a (B, num_classes) tensor.
-        if outputs.dim() > 2:
-            outputs = torch.nn.functional.adaptive_avg_pool2d(outputs, (1, 1))
-            outputs = outputs.view(outputs.size(0), -1)
+        for label in my_bidict:
+           
+            label_index = my_bidict[label]
+            label_tensor = torch.tensor([label_index] * image.size(0), device=device, dtype=torch.long)
             
-        predicted_labels = torch.argmax(outputs, dim=1)  # (batch_size,)
+            outputs = model(image, labels=label_tensor)
+            
+            neg_log_likelihood = discretized_mix_logistic_loss(image, outputs)
+            log_likelihood = -neg_log_likelihood  # convert negative loss to raw log-likelihood
+            
+            log_likelihoods.append(log_likelihood.item())
     
-    return predicted_labels
+    # Convert list to numpy array to easily compute argmax.
+    log_likelihoods = np.array(log_likelihoods)
+    best_index = np.argmax(log_likelihoods)
+    predicted_class = my_bidict[best_index]
+    
+    return predicted_class
 # End of your code
 
 def classifier(model, data_loader, device):

@@ -103,7 +103,7 @@ class PixelCNN(nn.Module):
 
         
 
-    def forward(self, x, labels = None, sample=False):
+    def forward(self, x, labels = None, sample=False, Classifier=False):
 
 
         if labels is not None: 
@@ -168,6 +168,7 @@ class PixelCNN(nn.Module):
                 u  = self.upsize_u_stream[i](u)
                 ul = self.upsize_ul_stream[i](ul)
 
+        
         x_out = self.nin_out(F.elu(ul))
 
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
