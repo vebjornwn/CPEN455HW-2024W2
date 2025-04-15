@@ -237,38 +237,60 @@ if __name__ == '__main__':
             print(f"Epoch {epoch}: Train Classification Accuracy: {train_acc:.4f}, Validation Classification Accuracy: {val_acc:.4f}")
 
         
+        ##OLD FID
+              
         if epoch % args.sampling_interval == 0:
             print('......sampling......')
-            # Dictionary to store images for logging to wandb
-            wandb_images = {}
+            sample_t = sample(model, args.sample_batch_size, args.obs, sample_op)
+            sample_t = rescaling_inv(sample_t)
+            save_images(sample_t, args.sample_dir)
+            sample_result = wandb.Image(sample_t, caption="epoch {}".format(epoch))
+            
+            gen_data_dir = args.sample_dir
+            ref_data_dir = args.data_dir +'/test'
+            paths = [gen_data_dir, ref_data_dir]
+            try:
+                fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
+                print("Dimension {:d} works! fid score: {}".format(192, fid_score))
+            except:
+                print("Dimension {:d} fails!".format(192))
+                
+            if args.en_wandb:
+                wandb.log({"samples": sample_result,
+                            "FID": fid_score})
 
-            # Iterate through each label in my_bidict
-            for label in my_bidict:
-                # Generate images for this label
-                sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, label=label)
-                sample_t = rescaling_inv(sample_t)
+        # if epoch % args.sampling_interval == 0:
+        #     print('......sampling......')
+        #     # Dictionary to store images for logging to wandb
+        #     wandb_images = {}
+
+        #     # Iterate through each label in my_bidict
+        #     for label in my_bidict:
+        #         # Generate images for this label
+        #         sample_t = sample(model, args.sample_batch_size // 4, args.obs, sample_op, label=label)
+        #         sample_t = rescaling_inv(sample_t)
                 
-                # Create a subdirectory for the current label (if it doesn't exist)
-                # Save the images to the label-specific folder
-                save_images(sample_t, args.sample_dir, label=label)
-                sample_result = wandb.Image(sample_t, caption="epoch {}".format(epoch))
+        #         # Create a subdirectory for the current label (if it doesn't exist)
+        #         # Save the images to the label-specific folder
+        #         save_images(sample_t, args.sample_dir, label=label)
+        #         sample_result = wandb.Image(sample_t, caption="epoch {}".format(epoch))
                 
-                # Log each image in the batch individually to wandb for this label
-                wandb_images[f"{label}_samples"] = [
-                    wandb.Image(img, caption=f"Label {label} at epoch {epoch}") for img in sample_t
-                ]
-                gen_data_dir = args.sample_dir
-                ref_data_dir = args.data_dir +'/test'
-                paths = [gen_data_dir, ref_data_dir]
-                try:
-                    fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
-                    print("Dimension {:d} works! fid score: {}".format(192, fid_score))
-                except:
-                    print("Dimension {:d} fails!".format(192))
+        #         # Log each image in the batch individually to wandb for this label
+        #         wandb_images[f"{label}_samples"] = [
+        #             wandb.Image(img, caption=f"Label {label} at epoch {epoch}") for img in sample_t
+        #         ]
+        #         gen_data_dir = args.sample_dir
+        #         ref_data_dir = args.data_dir +'/test'
+        #         paths = [gen_data_dir, ref_data_dir]
+        #         try:
+        #             fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
+        #             print("Dimension {:d} works! fid score: {}".format(192, fid_score))
+        #         except:
+        #             print("Dimension {:d} fails!".format(192))
                     
-                if args.en_wandb:
-                    wandb.log({"samples": sample_result,
-                                f"FID_{label}": fid_score})
+        #         if args.en_wandb:
+        #             wandb.log({"samples": sample_result,
+        #                         f"FID_{label}": fid_score})
         
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):

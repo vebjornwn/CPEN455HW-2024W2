@@ -147,7 +147,6 @@ class PixelCNN(nn.Module):
 
         ###    DOWN PASS    ###
         # --- MIDDLE FUSION ---
-        # One common way is to pop the last features from each stream and add the mid embedding:
 
         if labels is not None:
             mid_class_embedding = self.mid_embedding(labels)  # shape: (batch_size, nr_filters)
