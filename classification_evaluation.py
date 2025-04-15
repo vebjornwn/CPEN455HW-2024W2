@@ -35,9 +35,9 @@ def get_label(model, model_input, device):
     with torch.no_grad():
         for label in my_bidict.keys():
             label_index = my_bidict[label]
-            label_tensor = torch.tensor([label_index] * image.size(0), device=device, dtype=torch.long)
+            label_list = [label_index] * image.size(0)
             
-            outputs = model(image, labels=label_tensor)
+            outputs = model(image, labels=label_list)
             
             neg_log_likelihood = discretized_mix_logistic_loss(image, outputs)
             log_likelihood = -neg_log_likelihood  # convert negative loss to raw log-likelihood
