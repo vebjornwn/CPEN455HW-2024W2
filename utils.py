@@ -185,7 +185,8 @@ def sample(model, sample_batch_size, obs, sample_op, label=None):
                 if label is not None:
                     labels = [label] * data.shape[0]
                     out   = model(data_v, sample=True, labels=labels)
-                out   = model(data_v, sample=True)
+                else:
+                    out   = model(data_v, sample=True)
                 out_sample = sample_op(out)
                 data[:, :, i, j] = out_sample.data[:, :, i, j]
     return data
