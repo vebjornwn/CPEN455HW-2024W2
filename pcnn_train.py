@@ -245,7 +245,7 @@ if __name__ == '__main__':
             # Iterate through each label in my_bidict
             for label in my_bidict:
                 # Generate images for this label
-                sample_t = sample(model, args.sample_batch_size, args.obs, sample_op)
+                sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, label=label)
                 sample_t = rescaling_inv(sample_t)
                 
                 # Create a subdirectory for the current label (if it doesn't exist)
