@@ -113,10 +113,13 @@ class PixelCNN(nn.Module):
                 labels = torch.tensor(labels, dtype=torch.long, device=x.device)
             else:
                 labels = labels.to(device=x.device, dtype=torch.long)
-            early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
-            early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
+            # early_class_embedding = self.early_embedding(labels)  # shape: (batch_size, nr_filters)
+            # early_class_embedding = early_class_embedding.view(x.size(0), self.input_channels, 1, 1)
 
-            x = x + early_class_embedding
+            # x = x + early_class_embedding
+            # print(x)
+        print("Here is x")
+        print(x)
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -154,9 +157,12 @@ class PixelCNN(nn.Module):
   
         #     u  = u_list.pop() + mid_class_embedding
         #     ul = ul_list.pop() + mid_class_embedding
-
+        print("Here is u_list")
+        print(u_list)
         u  = u_list.pop()
         ul = ul_list.pop() 
+        print("Here is ul_list popped")
+        print(ul)
 
 
         for i in range(3):
