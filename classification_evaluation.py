@@ -46,12 +46,14 @@ def get_label(model, model_input, device):
     # Convert list to numpy array and select the class with the highest log-likelihood.
     log_likelihoods = np.array(log_likelihoods)
     best_index = np.argmax(log_likelihoods)
-    
-    # Convert best_index to the corresponding class label.
-    predicted_class = list(my_bidict.keys())[best_index]
-    
-    return predicted_class
+    # Get the predicted class as a string.
+    predicted_class_str = list(my_bidict.keys())[best_index]
+    # Convert this predicted string into its numeric label.
+    predicted_class_int = my_bidict[predicted_class_str]
+    # Create a tensor with the predicted numeric label repeated for the batch.
+    predicted_class = torch.tensor([predicted_class_int] * image.size(0), device=device, dtype=torch.long)
 
+    return predicted_class
 # End of your code
 
 def classifier(model, data_loader, device):
