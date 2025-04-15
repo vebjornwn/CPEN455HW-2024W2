@@ -239,46 +239,38 @@ if __name__ == '__main__':
         
         if epoch % args.sampling_interval == 0:
             print('......sampling......')
-            print('......sampling......')
-            print('......sampling......')
             # Dictionary to store images for logging to wandb
             wandb_images = {}
 
             # Iterate through each label in my_bidict
             for label in my_bidict:
-                print(f"Label: {label}")
                 # Generate images for this label
-                sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, label)
+                sample_t = sample(model, args.sample_batch_size, args.obs, sample_op)
                 sample_t = rescaling_inv(sample_t)
                 
                 # Create a subdirectory for the current label (if it doesn't exist)
-                class_gen_dir = os.path.join(args.sample_dir, f"Class_{label}")
-                if not os.path.exists(class_gen_dir):
-                    os.makedirs(class_gen_dir)
-                
                 # Save the images to the label-specific folder
-                save_images(sample_t, class_gen_dir, label=label)
+                save_images(sample_t, args.sample_dir, label=label)
                 
                 # Log each image in the batch individually to wandb for this label
-                wandb_images[f"Class{label}_samples"] = [
+                wandb_images[f"{label}_samples"] = [
                     wandb.Image(img, caption=f"Label {label} at epoch {epoch}") for img in sample_t
                 ]
             
-            # (Optional) Compute an overall FID using all generated images versus the reference images
             gen_data_dir = args.sample_dir
-            ref_data_dir = os.path.join(args.data_dir, "test")
+            ref_data_dir = args.data_dir +'/test'
             paths = [gen_data_dir, ref_data_dir]
             try:
                 fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
                 print("Dimension {:d} works! fid score: {}".format(192, fid_score))
-            except Exception as e:
-                fid_score = None
+            except:
                 print("Dimension {:d} fails!".format(192))
-            
-            # Log the images and overall FID score to Weights & Biases
+                
             if args.en_wandb:
-                log_dict = {}
-                log_dict.update(wandb_images)
-                if fid_score is not None:
-                    log_dict["FID_overall"] = fid_score
-                wandb.log(log_dict)
+                wandb.log({"samples": sample_result,
+                            "FID": fid_score})
+        
+        if (epoch + 1) % args.save_interval == 0: 
+            if not os.path.exists("models"):
+                os.makedirs("models")
+            torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
