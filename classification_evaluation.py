@@ -21,7 +21,14 @@ import csv
 NUM_CLASSES = len(my_bidict)
 
 #TODO: Begin of your code
-def get_label(model, model_input, device):
+def forward(self, x, labels=None, sample=False):
+    if labels is not None:
+        # Convert tensor labels to a list of ints if needed.
+        if isinstance(labels, torch.Tensor):
+            labels = labels.cpu().tolist()
+        labels = [my_bidict[label] for label in labels]
+        # ... continue with further processin
+
     model.eval()
     log_likelihoods = []
     
