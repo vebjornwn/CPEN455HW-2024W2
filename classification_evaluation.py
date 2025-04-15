@@ -67,7 +67,7 @@ def get_label(model, model_input, device):
     all_log_likelihoods = []
 
     for c in range(NUM_CLASSES):
-        condition = torch.full((batch_size,), c, dtype=torch.long, device=device)
+        condition =  [c] * batch_size
         # Run the model for the entire batch, conditioned on class c.
         # (We assume the model can process the entire batch at once.)
         outputs = model(model_input, class_labels=condition)
@@ -93,6 +93,8 @@ def get_label(model, model_input, device):
     log_likelihoods = torch.cat(all_log_likelihoods, dim=1)
     # The predicted label is the class with the highest log-likelihood for each sample
     predicted = torch.argmax(log_likelihoods, dim=1)
+
+    predicted_class = torch.tensor([predicted] *batch_size, device=device, dtype=torch.long)
     return predicted
 
 def classifier(model, data_loader, device):
