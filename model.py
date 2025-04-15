@@ -160,12 +160,13 @@ class PixelCNN(nn.Module):
             print("Here is mid_class_embedding")
             print(mid_class_embedding.size(0), mid_class_embedding.size(1), mid_class_embedding.size(2), mid_class_embedding.size(3))
   
-        #     u  = u_list.pop() + mid_class_embedding
-        #     ul = ul_list.pop() + mid_class_embedding
+            u  = u_list.pop() + mid_class_embedding
+            ul = ul_list.pop() + mid_class_embedding
         # print("Here is u_list")
         # print(u_list.size(0), u_list.size(1), u_list.size(2), u_list.size(3))
-        u  = u_list.pop()
-        ul = ul_list.pop() 
+        else:
+            u  = u_list.pop()
+            ul = ul_list.pop() 
         print("Here is ul_list popped")
         print(ul.size(0), ul.size(1), ul.size(2), ul.size(3))
 
