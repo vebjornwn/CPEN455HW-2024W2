@@ -251,24 +251,24 @@ if __name__ == '__main__':
                 # Create a subdirectory for the current label (if it doesn't exist)
                 # Save the images to the label-specific folder
                 save_images(sample_t, args.sample_dir, label=label)
+                sample_result = wandb.Image(sample_t, caption="epoch {}".format(epoch))
                 
                 # Log each image in the batch individually to wandb for this label
                 wandb_images[f"{label}_samples"] = [
                     wandb.Image(img, caption=f"Label {label} at epoch {epoch}") for img in sample_t
                 ]
-            
-            gen_data_dir = args.sample_dir
-            ref_data_dir = args.data_dir +'/test'
-            paths = [gen_data_dir, ref_data_dir]
-            try:
-                fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
-                print("Dimension {:d} works! fid score: {}".format(192, fid_score))
-            except:
-                print("Dimension {:d} fails!".format(192))
-                
-            if args.en_wandb:
-                wandb.log({"samples": sample_result,
-                            "FID": fid_score})
+                gen_data_dir = args.sample_dir
+                ref_data_dir = args.data_dir +'/test'
+                paths = [gen_data_dir, ref_data_dir]
+                try:
+                    fid_score = calculate_fid_given_paths(paths, 32, device, dims=192)
+                    print("Dimension {:d} works! fid score: {}".format(192, fid_score))
+                except:
+                    print("Dimension {:d} fails!".format(192))
+                    
+                if args.en_wandb:
+                    wandb.log({"samples": sample_result,
+                                f"FID_{label}": fid_score})
         
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
