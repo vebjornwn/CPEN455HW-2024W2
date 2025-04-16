@@ -49,9 +49,18 @@ if __name__ == "__main__":
 
     #TODO: Begin of your code
     #Load your model and generate images in the gen_data_dir, feel free to modify the model
-    model = PixelCNN(nr_resnet=1, nr_filters=40, input_channels=3, nr_logistic_mix=5)
+    model = PixelCNN(nr_resnet=1, nr_filters=80, input_channels=3, nr_logistic_mix=5)
     model = model.to(device)
-    model = model.eval()
+    
+    # Load the saved model parameters, if available. NB! This is the same as in classification_evaluation.py
+    model_path = os.path.join(os.path.dirname(__file__), 'models/conditional_pixelcnn.pth')
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path))
+        print('Model parameters loaded')
+    else:
+        raise FileNotFoundError(f"Model file not found at {model_path}")
+
+    model.eval()
     #End of your code
     
     my_sample(model=model, gen_data_dir=gen_data_dir)
