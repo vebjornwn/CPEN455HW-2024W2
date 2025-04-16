@@ -24,7 +24,6 @@ def get_label(model, model_input, device):
 
     all_log_likelihoods = []
     keys = list(my_bidict.keys())  # List of possible label names
-    num_classes = len(keys)
     
     with torch.no_grad():
         # Loop over each class label in my_bidict.
@@ -67,7 +66,8 @@ def classifier(model, data_loader, device):
     model.eval()
     acc_tracker = ratio_tracker()
     for batch_idx, item in enumerate(tqdm(data_loader)):
-        model_input, categories = item
+        # Here we assume the dataset returns (image, category) for non-test modes.
+        model_input, categories = item  
         model_input = model_input.to(device)
         original_label = [my_bidict[item] for item in categories]
         original_label = torch.tensor(original_label, dtype=torch.int64).to(device)
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--batch_size', type=int,
                         default=32, help='Batch size for inference')
     parser.add_argument('-m', '--mode', type=str,
-                        default='validation', help='Mode for the dataset')
+                        default='validation', help='Mode for the dataset or "test" for test mode')
     
     args = parser.parse_args()
     pprint(args.__dict__)
@@ -94,6 +94,8 @@ if __name__ == '__main__':
     kwargs = {'num_workers': 0, 'pin_memory': True, 'drop_last': False}
 
     ds_transforms = transforms.Compose([transforms.Resize((32, 32)), rescaling])
+    
+    # For evaluation (e.g., if mode is validation) we assume two outputs from the dataset.
     dataloader = torch.utils.data.DataLoader(
         CPEN455Dataset(root_dir=args.data_dir, mode=args.mode, transform=ds_transforms), 
         batch_size=args.batch_size, 
@@ -102,13 +104,13 @@ if __name__ == '__main__':
     )
 
     # TODO: Begin of your code
-    # You should replace the random classifier with your trained model
+    # Replace the random classifier with your trained model.
+    # Note: Using nr_logistic_mix=5 to match the training configuration.
     model = PixelCNN(nr_resnet=1, nr_filters=80, input_channels=3, nr_logistic_mix=5)
     # End of your code
     
     model = model.to(device)
-    # Attention: the path of the model is fixed to './models/conditional_pixelcnn.pth'
-    # You should save your model to this path
+    # Attention: The path of the model is fixed to './models/conditional_pixelcnn.pth'
     model_path = os.path.join(os.path.dirname(__file__), 'models/conditional_pixelcnn.pth')
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path))
@@ -117,14 +119,14 @@ if __name__ == '__main__':
         raise FileNotFoundError(f"Model file not found at {model_path}")
     model.eval()
     
-    # Evaluate accuracy on the validation set
+    # Evaluate accuracy on the validation set (if applicable)
     acc = classifier(model=model, data_loader=dataloader, device=device)
     print(f"Accuracy: {acc}")
     
     # === New Section: Save Predicted Labels to CSV ===
     print("Generating predictions CSV file...")
-    
-    # For reproducibility in order, create a new DataLoader with shuffle disabled.
+
+    # In test mode, we assume CPEN455Dataset returns (image, category, sample_index)
     dataset = CPEN455Dataset(root_dir=args.data_dir, mode=args.mode, transform=ds_transforms)
     pred_dataloader = torch.utils.data.DataLoader(
         dataset, 
@@ -134,27 +136,31 @@ if __name__ == '__main__':
     )
     
     predictions_all = []  # To store predicted labels for each sample
-    index_all = []        # To store sample index
-    idx = 0
+    index_all = []        # To store sample index (matching test.csv)
+    
     for batch in tqdm(pred_dataloader):
-        inputs, _ = batch  # We ignore the ground truth labels here.
+        # Here, we expect each batch to return (inputs, labels, sample_indices)
+        # If you're in test mode, make sure your dataset returns the index (third element).
+        inputs, _, sample_indices = batch  
         inputs = inputs.to(device)
         with torch.no_grad():
             preds = get_label(model, inputs, device)
         preds = preds.cpu().numpy().tolist()
-        batch_size = len(preds)
-        for i in range(batch_size):
-            predictions_all.append(preds[i])
-            index_all.append(idx)
-            idx += 1
+        
+        # Convert sample_indices (assumed to be a tensor) to list
+        sample_indices = sample_indices.tolist() if not isinstance(sample_indices, list) else sample_indices
+        
+        for pred, s_idx in zip(preds, sample_indices):
+            predictions_all.append(pred)
+            index_all.append(s_idx)
     
     csv_filename = 'predicted_labels.csv'
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         # Write header
         writer.writerow(["Index", "Predicted Label"])
-        # Write each prediction with its corresponding index
-        for i, pred in zip(index_all, predictions_all):
-            writer.writerow([i, pred])
+        # Write each prediction with its corresponding index from test.csv
+        for idx, pred in zip(index_all, predictions_all):
+            writer.writerow([idx, pred])
     
     print(f"CSV file with predictions saved to {csv_filename}")
