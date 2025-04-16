@@ -70,7 +70,7 @@ def get_label(model, model_input, device):
         condition =  [c] * batch_size
         # Run the model for the entire batch, conditioned on class c.
         # (We assume the model can process the entire batch at once.)
-        outputs = model(model_input, class_labels=condition)
+        outputs = model(model_input, labels=condition)
         
         # Now, because discretized_mix_logistic_loss returns a single scalar if fed a batch,
         # we iterate sample-by-sample.
