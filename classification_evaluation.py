@@ -40,23 +40,20 @@ def get_label(model, model_input, device):
             per_sample_ll = []  # to store the log-likelihood for each sample for this label.
             # Loop over each sample in the batch.
             for i in range(image.size(0)):
-                sample = image[i:i+1]  # shape: (1, C, H, W)
-                # Pass this single sample, with the current label as a list.
+                sample = image[i:i+1] 
                 output = model(sample, labels=[label])
                 # Compute the negative log-likelihood for this sample and then its log-likelihood.
                 neg_ll = discretized_mix_logistic_loss(sample, output)
                 ll = -neg_ll
                 per_sample_ll.append(ll)
-            # Stack the per-sample log-likelihoods to get a tensor of shape (batch_size,).
+            
             per_sample_ll_tensor = torch.stack(per_sample_ll, dim=0)
-            # Add a class dimension so that each tensor becomes shape (batch_size, 1).
+            
             all_log_likelihoods.append(per_sample_ll_tensor.unsqueeze(1))
         
-        # Concatenate along the second dimension to produce a tensor of shape (batch_size, num_classes).
         log_likelihoods = torch.cat(all_log_likelihoods, dim=1)
         
-        # For each sample, choose the class with the highest log-likelihood.
-        predicted_indices = torch.argmax(log_likelihoods, dim=1)  # shape: (batch_size,)
+        predicted_indices = torch.argmax(log_likelihoods, dim=1)  
         
         # Map the index back to the appropriate numeric label using my_bidict.
         predicted_classes = []
@@ -65,7 +62,6 @@ def get_label(model, model_input, device):
             predicted_class_int = my_bidict[predicted_class_str]
             predicted_classes.append(predicted_class_int)
         
-        # Create a tensor (on the proper device) with the per-sample predicted numeric labels.
         predicted_tensor = torch.tensor(predicted_classes, device=device, dtype=torch.long)
 
     return predicted_tensor
