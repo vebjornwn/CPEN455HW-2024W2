@@ -21,81 +21,55 @@ import csv
 NUM_CLASSES = len(my_bidict)
 
 #TODO: Begin of your code
-# def get_label(model, model_input, device):
-    
-#     model.eval()
-#     log_likelihoods = []
-    
-#     # Ensure image has a batch dimension.
-#     if model_input.dim() == 3:
-#         image = model_input.unsqueeze(0)
-#     else:
-#         image = model_input  # Make sure image is defined even if already batched.
-
-#     with torch.no_grad():
-#         for label in my_bidict.keys():
-#             label_list = [label] * image.size(0)
-
-#             outputs = model(image, labels=label_list)
-            
-#             neg_log_likelihood = discretized_mix_logistic_loss(image, outputs)
-#             log_likelihood = -neg_log_likelihood  # convert negative loss to raw log-likelihood
-            
-#             log_likelihoods.append(log_likelihood.item())
-    
-#     # Convert list to numpy array and select the class with the highest log-likelihood.
-#     log_likelihoods = np.array(log_likelihoods)
-#     best_index = np.argmax(log_likelihoods)
-#     # Get the predicted class as a string.
-#     predicted_class_str = list(my_bidict.keys())[best_index]
-#     # Convert this predicted string into its numeric label.
-#     predicted_class_int = my_bidict[predicted_class_str]
-#     # Create a tensor with the predicted numeric label repeated for the batch.
-#     predicted_class = torch.tensor([predicted_class_int] * image.size(0), device=device, dtype=torch.long)
-
-#     return predicted_class
-# End of your code
-
 def get_label(model, model_input, device):
-    # Write your code here, replace the random classifier with your trained model
-    # and return the predicted label, which is a tensor of shape (batch_size,)
-    # answer = model(model_input, device)
-    # return answer
-
-    batch_size = model_input.size(0)
-    # To accumulate log-likelihoods for each class:
-    all_log_likelihoods = []
-
-    for c in range(NUM_CLASSES):
-        condition =  [c] * batch_size
-        # Run the model for the entire batch, conditioned on class c.
-        # (We assume the model can process the entire batch at once.)
-        outputs = model(model_input, labels=condition)
-        
-        # Now, because discretized_mix_logistic_loss returns a single scalar if fed a batch,
-        # we iterate sample-by-sample.
-        sample_ll_list = []
-        for i in range(batch_size):
-            # Get the i-th sample and corresponding model output
-            sample_x = model_input[i:i+1]   # shape (1, C, H, W)
-            sample_output = outputs[i:i+1]    # corresponding output from the model
-            # Compute the negative log-likelihood for this single sample
-            neg_ll = discretized_mix_logistic_loss(sample_x, sample_output)
-            # Convert to log-likelihood
-            ll = -neg_ll
-            sample_ll_list.append(ll)
-        # Stack the per-sample log-likelihoods into a tensor of shape (batch_size,)
-        sample_ll_tensor = torch.stack(sample_ll_list, dim=0)
-        # Add an extra dimension so later we can concatenate across classes: shape (batch_size, 1)
-        all_log_likelihoods.append(sample_ll_tensor.unsqueeze(1))
+    model.eval()
     
-    # Concatenate over the second dimension: final shape (batch_size, NUM_CLASSES)
-    log_likelihoods = torch.cat(all_log_likelihoods, dim=1)
-    # The predicted label is the class with the highest log-likelihood for each sample
-    predicted = torch.argmax(log_likelihoods, dim=1)
+    # Ensure image has a batch dimension.
+    if model_input.dim() == 3:
+        image = model_input.unsqueeze(0)
+    else:
+        image = model_input  # Assume image is already batched.
 
-    predicted_class = torch.tensor([predicted] *batch_size, device=device, dtype=torch.long)
-    return predicted
+    all_log_likelihoods = []
+    keys = list(my_bidict.keys())  # List of possible label names
+    num_classes = len(keys)
+    
+    with torch.no_grad():
+        # Loop over each class label in my_bidict.
+        for label in keys:
+            per_sample_ll = []  # to store the log-likelihood for each sample for this label.
+            # Loop over each sample in the batch.
+            for i in range(image.size(0)):
+                sample = image[i:i+1]  # shape: (1, C, H, W)
+                # Pass this single sample, with the current label as a list.
+                output = model(sample, labels=[label])
+                # Compute the negative log-likelihood for this sample and then its log-likelihood.
+                neg_ll = discretized_mix_logistic_loss(sample, output)
+                ll = -neg_ll
+                per_sample_ll.append(ll)
+            # Stack the per-sample log-likelihoods to get a tensor of shape (batch_size,).
+            per_sample_ll_tensor = torch.stack(per_sample_ll, dim=0)
+            # Add a class dimension so that each tensor becomes shape (batch_size, 1).
+            all_log_likelihoods.append(per_sample_ll_tensor.unsqueeze(1))
+        
+        # Concatenate along the second dimension to produce a tensor of shape (batch_size, num_classes).
+        log_likelihoods = torch.cat(all_log_likelihoods, dim=1)
+        
+        # For each sample, choose the class with the highest log-likelihood.
+        predicted_indices = torch.argmax(log_likelihoods, dim=1)  # shape: (batch_size,)
+        
+        # Map the index back to the appropriate numeric label using my_bidict.
+        predicted_classes = []
+        for idx in predicted_indices.tolist():
+            predicted_class_str = keys[idx]
+            predicted_class_int = my_bidict[predicted_class_str]
+            predicted_classes.append(predicted_class_int)
+        
+        # Create a tensor (on the proper device) with the per-sample predicted numeric labels.
+        predicted_tensor = torch.tensor(predicted_classes, device=device, dtype=torch.long)
+
+    return predicted_tensor
+
 
 def classifier(model, data_loader, device):
     model.eval()
