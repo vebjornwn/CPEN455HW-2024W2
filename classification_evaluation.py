@@ -1,15 +1,3 @@
-'''
-This code is used to evaluate the classification accuracy of the trained model.
-You should at least guarantee this code can run without any error on validation set.
-And whether this code can run is the most important factor for grading.
-We provide the remaining code, all you should do are, and you can't modify other code:
-1. Replace the random classifier with your trained model.(line 69-72)
-2. modify the get_label function to get the predicted label.(line 23-29)(just like Leetcode solutions, the args of the function can't be changed)
-
-REQUIREMENTS:
-- You should save your model to the path 'models/conditional_pixelcnn.pth'
-- You should Print the accuracy of the model on validation set, when we evaluate your code, we will use test set to evaluate the accuracy
-'''
 from torchvision import datasets, transforms
 from utils import *
 from model import * 
@@ -18,9 +6,13 @@ from tqdm import tqdm
 from pprint import pprint
 import argparse
 import csv
+import os  # Ensure os is imported
+
+import torch
+
 NUM_CLASSES = len(my_bidict)
 
-#TODO: Begin of your code
+# TODO: Begin of your code
 def get_label(model, model_input, device):
     model.eval()
     
@@ -99,24 +91,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
     pprint(args.__dict__)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    kwargs = {'num_workers':0, 'pin_memory':True, 'drop_last':False}
+    kwargs = {'num_workers': 0, 'pin_memory': True, 'drop_last': False}
 
     ds_transforms = transforms.Compose([transforms.Resize((32, 32)), rescaling])
-    dataloader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
-                                                            mode = args.mode, 
-                                                            transform=ds_transforms), 
-                                             batch_size=args.batch_size, 
-                                             shuffle=True, 
-                                             **kwargs)
+    dataloader = torch.utils.data.DataLoader(
+        CPEN455Dataset(root_dir=args.data_dir, mode=args.mode, transform=ds_transforms), 
+        batch_size=args.batch_size, 
+        shuffle=True, 
+        **kwargs
+    )
 
-    #TODO:Begin of your code
-    #You should replace the random classifier with your trained model
+    # TODO: Begin of your code
+    # You should replace the random classifier with your trained model
     model = PixelCNN(nr_resnet=1, nr_filters=80, input_channels=3, nr_logistic_mix=10)
-    #End of your code
+    # End of your code
     
     model = model.to(device)
-    #Attention: the path of the model is fixed to './models/conditional_pixelcnn.pth'
-    #You should save your model to this path
+    # Attention: the path of the model is fixed to './models/conditional_pixelcnn.pth'
+    # You should save your model to this path
     model_path = os.path.join(os.path.dirname(__file__), 'models/conditional_pixelcnn.pth')
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path))
@@ -125,7 +117,44 @@ if __name__ == '__main__':
         raise FileNotFoundError(f"Model file not found at {model_path}")
     model.eval()
     
-    acc = classifier(model = model, data_loader = dataloader, device = device)
+    # Evaluate accuracy on the validation set
+    acc = classifier(model=model, data_loader=dataloader, device=device)
     print(f"Accuracy: {acc}")
-        
-        
+    
+    # === New Section: Save Predicted Labels to CSV ===
+    print("Generating predictions CSV file...")
+    
+    # For reproducibility in order, create a new DataLoader with shuffle disabled.
+    dataset = CPEN455Dataset(root_dir=args.data_dir, mode=args.mode, transform=ds_transforms)
+    pred_dataloader = torch.utils.data.DataLoader(
+        dataset, 
+        batch_size=args.batch_size, 
+        shuffle=False, 
+        **kwargs
+    )
+    
+    predictions_all = []  # To store predicted labels for each sample
+    index_all = []        # To store sample index
+    idx = 0
+    for batch in tqdm(pred_dataloader):
+        inputs, _ = batch  # We ignore the ground truth labels here.
+        inputs = inputs.to(device)
+        with torch.no_grad():
+            preds = get_label(model, inputs, device)
+        preds = preds.cpu().numpy().tolist()
+        batch_size = len(preds)
+        for i in range(batch_size):
+            predictions_all.append(preds[i])
+            index_all.append(idx)
+            idx += 1
+    
+    csv_filename = 'predicted_labels.csv'
+    with open(csv_filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        # Write header
+        writer.writerow(["Index", "Predicted Label"])
+        # Write each prediction with its corresponding index
+        for i, pred in zip(index_all, predictions_all):
+            writer.writerow([i, pred])
+    
+    print(f"CSV file with predictions saved to {csv_filename}")

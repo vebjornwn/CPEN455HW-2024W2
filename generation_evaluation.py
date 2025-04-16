@@ -52,7 +52,7 @@ if __name__ == "__main__":
     model = PixelCNN(nr_resnet=1, nr_filters=80, input_channels=3, nr_logistic_mix=10)
     model = model.to(device)
     
-    # Load the saved model parameters, if available
+    # Load the saved model parameters, if available this is the same as in classification_evaluation.py
     model_path = os.path.join(os.path.dirname(__file__), 'models/conditional_pixelcnn.pth')
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path))
