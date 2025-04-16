@@ -103,7 +103,7 @@ class PixelCNN(nn.Module):
 
         
 
-    def forward(self, x, labels = None, sample=False, Classifier=False):
+    def forward(self, x, labels = None, sample=False,):
 
 
         if labels is not None: 

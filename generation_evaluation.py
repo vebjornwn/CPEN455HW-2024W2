@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     #TODO: Begin of your code
     #Load your model and generate images in the gen_data_dir, feel free to modify the model
-    model = PixelCNN(nr_resnet=1, nr_filters=80, input_channels=3, nr_logistic_mix=10)
+    model = PixelCNN(nr_resnet=1, nr_filters=80, input_channels=3, nr_logistic_mix=5)
     model = model.to(device)
     
     # Load the saved model parameters, if available this is the same as in classification_evaluation.py
