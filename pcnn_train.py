@@ -225,7 +225,7 @@ if __name__ == '__main__':
                       args = args,
                       epoch = epoch,
                       mode = 'val')
-        if (epoch + 1) % 2 == 0:
+        if (epoch + 1) % 100 == 0:
             train_acc = classifier(model, train_loader, device)
             val_acc = classifier(model, val_loader, device)
             if args.en_wandb:
