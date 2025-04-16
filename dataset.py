@@ -44,14 +44,14 @@ class CPEN455Dataset(Dataset):
             category_name = my_bidict.inverse[category]
         else:
             category_name = "Unknown"
-        # print(img_path)
         image = read_image(img_path)  # Reads the image as a tensor
-        image = image.type(torch.float32) / 255.  # Normalize to [0, 1]
+        image = image.type(torch.float32) / 255.0  # Normalize to [0, 1]
         if image.shape[0] == 1:
             image = replicate_color_channel(image)
         if self.transform:
-          image = self.transform(image)
-        return image, category_name
+            image = self.transform(image)
+        # Return image, category, and the sample index
+        return image, category_name, idx
     
     def get_all_images(self, label):
         return [img for img, cat in self.samples if cat == label]
