@@ -19,50 +19,53 @@ my_bidict = bidict({'Class0': 0,
                     'Class3': 3})
 
 class CPEN455Dataset(Dataset):
-    def __init__(self, root_dir = './data', mode='train', transform=None):
+    def __init__(self, root_dir='./data', mode='train', transform=None):
         """
         Args:
-            root_dir (string): Directory with all the images and labels.
-            transform (callable, optional): Optional transform to be applied on a sample.
+            root_dir (str): Directory with all the images and CSV files.
+            mode (str): One of 'train', 'validation', or 'test'. The CSV filename will
+                        be "<mode>.csv".
+            transform (callable, optional): Optional transform to be applied on an image sample.
         """
         self.root_dir = root_dir
         self.transform = transform
-        self.samples = []  # List to store image paths along with domain and category
-        # Walk through the directory structure
+        
+        # Read the CSV file – now expecting three columns: csv_index, path, label.
         csv_path = os.path.join(self.root_dir, mode + '.csv')
-        df = pd.read_csv(csv_path, header=None, names=['path', 'label'])
-        # Convert DataFrame to a list of tuples
+        # Specify column names; adjust these if your CSV has headers already.
+        import pandas as pd
+        df = pd.read_csv(csv_path, header=None, names=['csv_index', 'path', 'label'])
+        
+        # Convert DataFrame rows into a list of tuples: (csv_index, path, label)
+        # Prepend root_dir to the image path if needed
         self.samples = list(df.itertuples(index=False, name=None))
-        self.samples = [(os.path.join(self.root_dir, path), label) for path, label in self.samples]
+        self.samples = [
+            (csv_index, os.path.join(self.root_dir, path), label)
+            for csv_index, path, label in self.samples
+        ]
         
     def __len__(self):
         return len(self.samples)
-
+    
     def __getitem__(self, idx):
-        img_path, category = self.samples[idx]
+        # Unpack the tuple: csv_index from the CSV, image file path, and category.
+        csv_index, img_path, category = self.samples[idx]
+        # If the category is one of the known values, map it to its string name.
         if category in my_bidict.values():
             category_name = my_bidict.inverse[category]
         else:
             category_name = "Unknown"
-        image = read_image(img_path)  # Reads the image as a tensor
-        image = image.type(torch.float32) / 255.0  # Normalize to [0, 1]
+            
+        # Read the image (as a tensor) and normalize
+        image = read_image(img_path)  # returns a tensor of shape (C, H, W)
+        image = image.float() / 255.0  # Normalize to [0, 1]
         if image.shape[0] == 1:
             image = replicate_color_channel(image)
         if self.transform:
             image = self.transform(image)
-        # Return image, category, and the sample index
-        return image, category_name, idx
-    
-    def get_all_images(self, label):
-        return [img for img, cat in self.samples if cat == label]
-
-def show_images(images, categories, mode:str):
-        fig, axs = plt.subplots(1, len(images), figsize=(15, 5))
-        for i, image in enumerate(images):
-            axs[i].imshow(image.permute(1, 2, 0))  # Convert from (C, H, W) to (H, W, C)
-            axs[i].set_title(f"Category: {categories[i]}")
-            axs[i].axis('off')
-        plt.savefig(mode + '_test.png')
+        
+        # Return image, category string, and the original CSV index.
+        return image, category_name, csv_index
 
 if __name__ == '__main__':
     
